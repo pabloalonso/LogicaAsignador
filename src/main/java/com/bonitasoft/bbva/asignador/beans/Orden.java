@@ -1,7 +1,7 @@
 package com.bonitasoft.bbva.asignador.beans;
 
 /**
- * Created by pablo on 20/09/2017.
+ * @author Pablo Alonso de Linaje García
  */
 public class Orden {
     private String orden;

@@ -1,13 +1,13 @@
 package com.bonitasoft.bbva.asignador.beans;
 
 /**
- * Created by pablo on 20/09/2017.
+ * @author Pablo Alonso de Linaje García
  */
-public class Restriccion extends ParametriaAsignador {
+public class Restriccion {
 
     private String restriccion;
     private String condicion;
-    private String valor;
+    private String[] valores;
 
     public String getRestriccion() {
         return restriccion;
@@ -26,14 +26,55 @@ public class Restriccion extends ParametriaAsignador {
     }
 
     public String getValor() {
-        return valor;
+        return this.valores[0];
     }
 
     public void setValor(String valor) {
-        this.valor = valor;
+        this.valores = new String[1];
+        this.valores[0]= valor;
+    }
+    public void setValores(String valores){
+        this.valores = valores.split(",");
+    }
+    public void setValores(String[] valores){
+        this.valores = valores;
     }
 
     public String getSQL() {
-        return "( CLAVE='" + restriccion + "' and VALOR " + convertirCondicion(condicion) + "'" + valor + "')";
+        String sql ="";
+        switch (condicion) {
+            case "BETWEEN": sql += "( CLAVE='" + restriccion + "' and VALOR " + convertirCondicion(condicion) + " '" + valores[0] + "' and '" + valores[1] + "')";break;
+            case "IN":      sql += "( CLAVE='" + restriccion + "' and VALOR " + convertirCondicion(condicion) + "(";
+                    for(int i =0; i< valores.length; i++){
+                        sql+="'" + valores[0] + "'";
+                        if(valores.length-1<i){
+                            sql+=",";
+                        }
+                    }
+                    break;
+            default: sql+="( CLAVE='" + restriccion + "' and VALOR " + convertirCondicion(condicion) + "'" + valores[0] + "')";
+        }
+        return sql;
+    }
+    private String convertirCondicion(String condicion) {
+        condicion = condicion.trim().replaceAll(" ", "").toUpperCase();
+        switch (condicion) {
+            case "BETWEEN":
+            case "IN":
+            case ">":
+            case ">=":
+            case "=":
+            case "<":
+            case "<=":
+                return condicion;
+            case "=>":
+                return ">=";
+            case "=<":
+                return "<=";
+            case "==":
+                return "=";
+            default:
+                return "=";
+        }
     }
 }

@@ -3,7 +3,7 @@ package com.bonitasoft.bbva.asignador.beans;
 import java.util.List;
 
 /**
- * Created by pablo on 20/09/2017.
+ * @author Pablo Alonso de Linaje García
  */
 public class Parametria {
     private List<Orden> ordenList;
@@ -33,4 +33,6 @@ public class Parametria {
     public void setRestriccionList(List<Restriccion> restriccionList) {
         this.restriccionList = restriccionList;
     }
+
+
 }

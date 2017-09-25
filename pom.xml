@@ -7,9 +7,23 @@
     <groupId>com.bonitasoft.bbva</groupId>
     <artifactId>Asignador</artifactId>
     <version>1.0</version>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <properties>
         <slf4jVersion>1.6.1</slf4jVersion>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
     <dependencies>
@@ -17,12 +31,15 @@
             <groupId>org.bonitasoft.engine</groupId>
             <artifactId>bonita-client</artifactId>
             <version>7.4.3</version>
+            <scope>provided</scope>
         </dependency>
+<!--
         <dependency>
             <groupId>com.bonitasoft.engine</groupId>
             <artifactId>bonita-common</artifactId>
             <version>7.4.3</version>
         </dependency>
+        -->
         <!--https://dzone.com/articles/adding-slf4j-your-maven-->
         <dependency>
             <groupId>org.slf4j</groupId>
