@@ -21,13 +21,15 @@ public class AsignadorTest {
         LOGGER.error("Tomo: " + (System.currentTimeMillis() - s) + "ms");
     }
 
-    //@Test(threadPoolSize = 2, invocationCount = 20, timeOut = 10000)
+    @Test(threadPoolSize = 1, invocationCount = 4, timeOut = 10000)
     public void mutiThreadNextTask() {
         Long s = System.currentTimeMillis();
-        Asignador as = Asignador.getAsignador(4L, "");
+        Asignador as = Asignador.getAsignador(5L, "");
         Map<String, Serializable> task = as.getNextTask();
         LOGGER.error(task.toString());
         LOGGER.error("Tomo: " + (System.currentTimeMillis() - s) + "ms");
 
     }
+
+
 }
