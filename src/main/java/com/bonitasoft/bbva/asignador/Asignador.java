@@ -7,24 +7,39 @@ import com.bonitasoft.bbva.asignador.beans.Restriccion;
 import com.bonitasoft.bbva.asignador.utils.IndexesASCComparator;
 import com.bonitasoft.bbva.asignador.utils.IndexesDESCComparator;
 import org.apache.commons.dbcp.BasicDataSource;
-import org.bonitasoft.engine.api.ApiAccessType;
 import org.bonitasoft.engine.api.ProcessAPI;
 import org.bonitasoft.engine.api.TenantAPIAccessor;
 import org.bonitasoft.engine.bpm.flownode.HumanTaskInstance;
 import org.bonitasoft.engine.bpm.flownode.HumanTaskInstanceSearchDescriptor;
 import org.bonitasoft.engine.exception.SearchException;
+import org.bonitasoft.engine.exception.UpdateException;
 import org.bonitasoft.engine.search.Order;
 import org.bonitasoft.engine.search.SearchOptionsBuilder;
 import org.bonitasoft.engine.session.APISession;
 import org.bonitasoft.engine.session.InvalidSessionException;
-import org.bonitasoft.engine.util.APITypeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.sql.DataSource;
 import java.io.Serializable;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 
 /**
@@ -33,37 +48,43 @@ import java.util.*;
 public class Asignador {
     private static final String BONITA_URL = "http://localhost:8080";
     private static final String BONITA_APP_NAME = "bonita";
-    private static final String BONITA_TECH_USER = "install";
-    private static final String BONITA_TECH_USER_PASSWORD = "install";
+    private static String BONITA_TECH_USER;
+    private static String BONITA_TECH_USER_PASSWORD;
+    private static String BDM_DATASOURCE;
     private static final Logger LOGGER = LoggerFactory.getLogger(Asignador.class);
     private static Map<Long, Asignador> asignadorUsuario = new HashMap<Long, Asignador>();
-    private DataSource dsBDM;
+    private static DataSource dsBDM = null;
     private Long idUsuario;
-    private APISession session;
+    private static APISession session;
 
     private Asignador() {
         super();
     }
 
-    private Asignador(Long idUsuario, String datasourceBDM) {
+    private Asignador(Long idUsuario ) {
         super();
-        if(!datasourceBDM.equals("rest")) {
-            Map<String, String> settings = new HashMap<String, String>();
-            settings.put("server.url", BONITA_URL);
-            settings.put("application.name", BONITA_APP_NAME);
-            APITypeManager.setAPITypeAndParams(ApiAccessType.HTTP, settings);
-        }
         this.idUsuario = idUsuario;
-        this.dsBDM = getDatasouce(datasourceBDM);
+
 
     }
 
-    public static Asignador getAsignador(Long idUser, String datasourceBDM) {
+    public static Asignador getAsignador(Long idUser, String datasourceBDM, String techUser, String techUserPwd) throws Exception {
+        BDM_DATASOURCE = datasourceBDM;
+        BONITA_TECH_USER = techUser;
+        BONITA_TECH_USER_PASSWORD = techUserPwd;
+        try {
+            if (dsBDM == null) {
+                dsBDM = getDatasouce(datasourceBDM);
+            }
+        }catch (NamingException ne){
+            throw new Exception("Conexion no conseguida",ne);
+        }
         Asignador asignador = asignadorUsuario.get(idUser);
         if (asignador == null) {
-            asignador = new Asignador(idUser, datasourceBDM);
+            asignador = new Asignador(idUser);
             asignadorUsuario.put(idUser, asignador);
         }
+
         return asignador;
     }
 
@@ -584,14 +605,14 @@ public class Asignador {
         for (HumanTaskInstance iter : tareas) {
             try {
                 //Cambiar por el metodo especifico
-                p.assignUserTask(iter.getId(), idUsuario);
+                p.assignUserTaskIfNotAssigned(iter.getId(), idUsuario);
                 tarea = new HashMap<String, Serializable>();
                 tarea.put("id", iter.getId());
                 tarea.put("caseId", iter.getParentProcessInstanceId());
                 tarea.put("name", iter.getName());
                 break;
-            } catch (Exception e) {
-                //Cambiar por la excepción especifica
+            } catch (UpdateException e){
+                LOGGER.info(e.getMessage());
                 continue;
             }
         }
@@ -627,13 +648,19 @@ public class Asignador {
      * @param datasourceBDM
      * @return
      */
-    private DataSource getDatasouce(String datasourceBDM) {
-        BasicDataSource basicDataSource = new BasicDataSource();
-        basicDataSource.setDriverClassName("org.h2.Driver");
-        basicDataSource.setUrl("jdbc:h2:file:C:\\BonitaBPM\\workspace\\BBVA-AsignadorTareas\\h2_database//business_data.db;MVCC=TRUE;DB_CLOSE_ON_EXIT=FALSE;IGNORECASE=TRUE;AUTO_SERVER=TRUE;");
-        basicDataSource.setUsername("sa");
-        basicDataSource.setPassword("");
-        return basicDataSource;
+    private static DataSource getDatasouce(String datasourceBDM) throws NamingException {
+        if(datasourceBDM.equals("test")) {
+            BasicDataSource basicDataSource = new BasicDataSource();
+            basicDataSource.setDriverClassName("org.h2.Driver");
+            basicDataSource.setUrl("jdbc:h2:file:C:\\BonitaBPM\\workspace\\BBVA-AsignadorTareas\\h2_database//business_data.db;MVCC=TRUE;DB_CLOSE_ON_EXIT=FALSE;IGNORECASE=TRUE;AUTO_SERVER=TRUE;");
+            basicDataSource.setUsername("sa");
+            basicDataSource.setPassword("");
+            return basicDataSource;
+        }else{
+            Context ctx = new InitialContext();
+            DataSource ds = (DataSource)ctx.lookup(datasourceBDM);
+            return ds;
+        }
 
     }
 }
