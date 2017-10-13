@@ -6,7 +6,6 @@ import com.bonitasoft.bbva.asignador.beans.Prioridad;
 import com.bonitasoft.bbva.asignador.beans.Restriccion;
 import com.bonitasoft.bbva.asignador.utils.IndexesASCComparator;
 import com.bonitasoft.bbva.asignador.utils.IndexesDESCComparator;
-import org.apache.commons.dbcp.BasicDataSource;
 import org.bonitasoft.engine.api.ProcessAPI;
 import org.bonitasoft.engine.api.TenantAPIAccessor;
 import org.bonitasoft.engine.bpm.flownode.HumanTaskInstance;
@@ -46,30 +45,24 @@ import java.util.TreeSet;
  * @author Pablo Alonso de Linaje Garcia
  */
 public class Asignador {
-    private static final String BONITA_URL = "http://localhost:8080";
-    private static final String BONITA_APP_NAME = "bonita";
     private static String BONITA_TECH_USER;
     private static String BONITA_TECH_USER_PASSWORD;
-    private static String BDM_DATASOURCE;
     private static final Logger LOGGER = LoggerFactory.getLogger(Asignador.class);
-    private static Map<Long, Asignador> asignadorUsuario = new HashMap<Long, Asignador>();
+    private static Map<String, Asignador> asignadorUsuario = new HashMap<>();
     private static DataSource dsBDM = null;
+    private String categoria;
     private Long idUsuario;
     private static APISession session;
 
-    private Asignador() {
-        super();
-    }
-
-    private Asignador(Long idUsuario ) {
+    private Asignador(Long idUsuario , String categoria) {
         super();
         this.idUsuario = idUsuario;
+        this.categoria = categoria;
 
 
     }
 
-    public static Asignador getAsignador(Long idUser, String datasourceBDM, String techUser, String techUserPwd) throws Exception {
-        BDM_DATASOURCE = datasourceBDM;
+    public static Asignador getAsignador(Long idUser, String datasourceBDM, String techUser, String techUserPwd, String categoria) throws Exception {
         BONITA_TECH_USER = techUser;
         BONITA_TECH_USER_PASSWORD = techUserPwd;
         try {
@@ -79,10 +72,10 @@ public class Asignador {
         }catch (NamingException ne){
             throw new Exception("Conexion no conseguida",ne);
         }
-        Asignador asignador = asignadorUsuario.get(idUser);
+        Asignador asignador = asignadorUsuario.get(""+idUser+"-"+categoria);
         if (asignador == null) {
-            asignador = new Asignador(idUser);
-            asignadorUsuario.put(idUser, asignador);
+            asignador = new Asignador(idUser, categoria);
+            asignadorUsuario.put(""+idUser+"-"+categoria, asignador);
         }
 
         return asignador;
@@ -91,8 +84,8 @@ public class Asignador {
 
     public Map<String, Serializable> getNextTask() {
 
-        Map<String, Serializable> task = new HashMap<String, Serializable>();
-        Parametria params = getParametria();
+        Map<String, Serializable> task;
+        Parametria params = getParametria(categoria);
 
         final List<Long> casosPrioritarios = getCasosPrioritarios(params);
 
@@ -139,8 +132,6 @@ public class Asignador {
 
     private Map<String, Serializable> pesarOrdenarYAsignar(List<HumanTaskInstance> tareas, Parametria params) {
         Map<String, Serializable> task = null;
-        //Recuperamos los ids de los casos afectados
-        List<Long> idsCasos = new ArrayList<>();
 
         Map<Long, List<HumanTaskInstance>> mapaTareas = new HashMap<>();
         for(HumanTaskInstance tarea : tareas) {
@@ -180,9 +171,11 @@ public class Asignador {
             String sqlSelect = "SELECT a.id_caso ID_CASO, ";
             String sqlFrom = " FROM ";
             String sqlWhere1 = " WHERE a.id_caso in (";
+            StringBuilder sb = new StringBuilder(sqlWhere1);
             for (Long idCaso : mapaTareas.keySet()) {
-                sqlWhere1 += "'" + idCaso + "',";
+                sb.append("'").append(idCaso).append("',");
             }
+            sqlWhere1 = sb.toString();
             sqlWhere1 = sqlWhere1.substring(0, sqlWhere1.length() - 1);
 
             String sqlWhere2 = " ) and ";
@@ -355,7 +348,7 @@ public class Asignador {
         }
         return rows;
     }
-    private Parametria getParametria() {
+    private Parametria getParametria(String categoria) {
         Parametria parametria = new Parametria();
         List<Restriccion> listaRestricciones = new ArrayList<Restriccion>();
         Restriccion rest = new Restriccion();
@@ -402,7 +395,7 @@ public class Asignador {
         List<Long> casos = new ArrayList<Long>();
         String sql = "SELECT p.id_caso FROM PROCESSSEARCHINDEXES p JOIN (SELECT id_caso, count(1) as num FROM " +
                 "PROCESSSEARCHINDEXES WHERE id_caso in (SELECT prior.id_caso FROM PROCESSSEARCHINDEXES prior WHERE " +
-                "(prior.CLAVE = 'statusPrioridad' AND prior.VALOR='prioritario')) AND (";
+                "(prior.cat_proceso = '"+ categoria +"' AND prior.CLAVE = 'statusPrioridad' AND prior.VALOR='prioritario')) AND (";
         final List<Restriccion> listRestriccion = params.getRestriccionList();
         final int sizeRestriccion = listRestriccion.size();
         for (int i = 0; i < sizeRestriccion; i++) {
@@ -415,7 +408,7 @@ public class Asignador {
         sql += ") group by id_caso having num = " + sizeRestriccion + ") as p2 ON (p.id_caso =  p2.id_caso ) " +
                 "GROUP BY p.id_caso ";
 
-        LOGGER.debug("PRIORITARIO SQL: " + sql);
+        LOGGER.info("PRIORITARIO SQL: " + sql);
 
         Connection conBDM = null;
         Statement st = null;
@@ -463,6 +456,7 @@ public class Asignador {
 
 
         String sql = "SELECT p.id_caso FROM PROCESSSEARCHINDEXES p JOIN (SELECT id_caso, count(1) as num FROM PROCESSSEARCHINDEXES WHERE ";
+        sql += "prior.cat_proceso = '"+ categoria +"' AND (";
         final List<Restriccion> listRestriccion = params.getRestriccionList();
         final int sizeRestriccion = listRestriccion.size();
 
@@ -475,7 +469,7 @@ public class Asignador {
 
         sql += " group by id_caso having num = " + sizeRestriccion + ") as p2 ON (p.id_caso =  p2.id_caso ) GROUP BY p.id_caso ";
 
-        LOGGER.debug("RECONSIDERADO SQL: " + sql);
+        LOGGER.info("RECONSIDERADO SQL: " + sql);
 
         Connection conBDM = null;
         Statement st = null;
@@ -518,9 +512,10 @@ public class Asignador {
 
 
         String sql = "SELECT p.id_caso FROM PROCESSSEARCHINDEXES p JOIN (SELECT id_caso, count(1) as num FROM " +
-                "PROCESSSEARCHINDEXES WHERE id_caso not in (SELECT others.id_caso FROM PROCESSSEARCHINDEXES others WHERE" +
+                "PROCESSSEARCHINDEXES WHERE (prior.cat_proceso = '"+ categoria +"') and " +
+                " id_caso not in (SELECT others.id_caso FROM PROCESSSEARCHINDEXES others WHERE" +
                 " (others.CLAVE = 'statusPrioridad' AND others.VALOR='prioritario') or " +
-                "(others.CLAVE = 'reconsideracion' AND others.VALOR!='')) and ( ";
+                "(others.CLAVE = 'reconsideracion' AND others.VALOR!='')) and  ( ";
         final List<Restriccion> listRestriccion = params.getRestriccionList();
         final int sizeRestriccion = listRestriccion.size();
 
@@ -642,25 +637,10 @@ public class Asignador {
 
     }
 
-    /**
-     * METODO TEMPORAL
-     *
-     * @param datasourceBDM
-     * @return
-     */
-    private static DataSource getDatasouce(String datasourceBDM) throws NamingException {
-        if(datasourceBDM.equals("test")) {
-            BasicDataSource basicDataSource = new BasicDataSource();
-            basicDataSource.setDriverClassName("org.h2.Driver");
-            basicDataSource.setUrl("jdbc:h2:file:C:\\BonitaBPM\\workspace\\BBVA-AsignadorTareas\\h2_database//business_data.db;MVCC=TRUE;DB_CLOSE_ON_EXIT=FALSE;IGNORECASE=TRUE;AUTO_SERVER=TRUE;");
-            basicDataSource.setUsername("sa");
-            basicDataSource.setPassword("");
-            return basicDataSource;
-        }else{
-            Context ctx = new InitialContext();
-            DataSource ds = (DataSource)ctx.lookup(datasourceBDM);
-            return ds;
-        }
 
+    private static DataSource getDatasouce(String datasourceBDM) throws NamingException {
+        Context ctx = new InitialContext();
+        DataSource ds = (DataSource)ctx.lookup(datasourceBDM);
+        return ds;
     }
 }

@@ -8,6 +8,7 @@ public class Restriccion {
     private String restriccion;
     private String condicion;
     private String[] valores;
+    private String categoria;
 
     public String getRestriccion() {
         return restriccion;
@@ -76,5 +77,13 @@ public class Restriccion {
             default:
                 return "=";
         }
+    }
+
+    public String getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
     }
 }
