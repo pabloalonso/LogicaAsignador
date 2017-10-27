@@ -99,8 +99,10 @@ public class Asignador {
                 return task;
             }
         }
+
         final List<Long> casosReconsiderados = getCasosReconsiderados(params);
         tareas = getTareasCasos(casosReconsiderados);
+
         if (tareas != null && tareas.size() > 0) {
             task = pesarOrdenarYAsignar(tareas, params);
             if (task != null) {
@@ -110,6 +112,7 @@ public class Asignador {
         }
         final List<Long> casosParametria = getCasosParametria(params);
         tareas = getTareasCasos(casosParametria);
+
         if (tareas != null && tareas.size() > 0) {
             task = pesarOrdenarYAsignar(tareas, params);
             if (task != null) {
@@ -186,7 +189,7 @@ public class Asignador {
                 String clave = claves.get(i);
                 String alias = Character.toString((char) (i + caracter));
                 sqlSelect += alias + ".valor as " + clave + ",";
-                sqlFrom += "PROCESSSEARCHINDEXES as " + alias + ",";
+                sqlFrom += "PROCESSSEARCHINDEXES " + alias + ",";
                 if (i > 0) {
                     sqlWhere2 += "a.id_caso = " + alias + ".id_caso and ";
                 }
@@ -235,6 +238,10 @@ public class Asignador {
 
             // Aplicar prioridad
             SortedMap<Integer, List<Map>> sortedMap = new TreeMap();
+            if(resultado == null){
+                LOGGER.error("El resultado es nulo ", claves, sql);
+                return null;
+            }
             for (Map<String, String> row : resultado) {
 
                 Integer pesoActual = 0;
@@ -278,8 +285,6 @@ public class Asignador {
                 sortedMap.put(pesoActual, tempList);
             }
 
-            //List<HumanTaskInstance> tareasOrdenadas = new ArrayList<>();
-
             ArrayList<Integer> keys = new ArrayList<Integer>(sortedMap.keySet());
             for (int i = keys.size() - 1; i >= 0; i--) {
                 List<Map> casos = sortedMap.get(keys.get(i));
@@ -303,7 +308,6 @@ public class Asignador {
                         task = asignarTarea(listaTareasDelCaso);
                         if (task != null)
                             break;
-                        //tareasOrdenadas.addAll(listaTareasDelCaso);
                     } else {
                         LOGGER.error("No hay tareas disponibles para este caso y usuario");
                     }
@@ -349,12 +353,14 @@ public class Asignador {
         return rows;
     }
     private Parametria getParametria(String categoria) {
+
+        ///services/reglas
         Parametria parametria = new Parametria();
         List<Restriccion> listaRestricciones = new ArrayList<Restriccion>();
         Restriccion rest = new Restriccion();
         rest.setRestriccion("Monto");
         rest.setCondicion("BETWEEN");
-        rest.setValores("1025,1090");
+        rest.setValores("10,90");
         listaRestricciones.add(rest);
 /*
         rest = new Restriccion();
@@ -394,8 +400,8 @@ public class Asignador {
     private List<Long> getCasosPrioritarios(Parametria params) {
         List<Long> casos = new ArrayList<Long>();
         String sql = "SELECT p.id_caso FROM PROCESSSEARCHINDEXES p JOIN (SELECT id_caso, count(1) as num FROM " +
-                "PROCESSSEARCHINDEXES WHERE id_caso in (SELECT prior.id_caso FROM PROCESSSEARCHINDEXES prior WHERE " +
-                "(prior.cat_proceso = '"+ categoria +"' AND prior.CLAVE = 'statusPrioridad' AND prior.VALOR='prioritario')) AND (";
+                "PROCESSSEARCHINDEXES WHERE id_caso in (SELECT prio.id_caso FROM PROCESSSEARCHINDEXES prio WHERE " +
+                "(prio.cat_proceso = '"+ categoria +"' AND prio.CLAVE = 'statusPrioridad' AND to_char(prio.VALOR)='prioritario')) AND (";
         final List<Restriccion> listRestriccion = params.getRestriccionList();
         final int sizeRestriccion = listRestriccion.size();
         for (int i = 0; i < sizeRestriccion; i++) {
@@ -405,10 +411,10 @@ public class Asignador {
                 sql += " OR ";
         }
 
-        sql += ") group by id_caso having num = " + sizeRestriccion + ") as p2 ON (p.id_caso =  p2.id_caso ) " +
+        sql += ") group by id_caso having count(1) = " + sizeRestriccion + ") p2 ON (p.id_caso =  p2.id_caso ) " +
                 "GROUP BY p.id_caso ";
 
-        LOGGER.info("PRIORITARIO SQL: " + sql);
+        LOGGER.debug("PRIORITARIO SQL: " + sql);
 
         Connection conBDM = null;
         Statement st = null;
@@ -447,7 +453,7 @@ public class Asignador {
 
     }
 
-    private List<Long> getCasosReconsiderados(Parametria params) {
+   private List<Long> getCasosReconsiderados(Parametria params) {
         List<Long> casos = new ArrayList<Long>();
 
         //ELIMINAR
@@ -456,7 +462,7 @@ public class Asignador {
 
 
         String sql = "SELECT p.id_caso FROM PROCESSSEARCHINDEXES p JOIN (SELECT id_caso, count(1) as num FROM PROCESSSEARCHINDEXES WHERE ";
-        sql += "prior.cat_proceso = '"+ categoria +"' AND (";
+        sql += "cat_proceso = '"+ categoria +"' AND (";
         final List<Restriccion> listRestriccion = params.getRestriccionList();
         final int sizeRestriccion = listRestriccion.size();
 
@@ -469,7 +475,7 @@ public class Asignador {
 
         sql += " group by id_caso having num = " + sizeRestriccion + ") as p2 ON (p.id_caso =  p2.id_caso ) GROUP BY p.id_caso ";
 
-        LOGGER.info("RECONSIDERADO SQL: " + sql);
+        LOGGER.debug("RECONSIDERADO SQL: " + sql);
 
         Connection conBDM = null;
         Statement st = null;
@@ -512,10 +518,10 @@ public class Asignador {
 
 
         String sql = "SELECT p.id_caso FROM PROCESSSEARCHINDEXES p JOIN (SELECT id_caso, count(1) as num FROM " +
-                "PROCESSSEARCHINDEXES WHERE (prior.cat_proceso = '"+ categoria +"') and " +
+                "PROCESSSEARCHINDEXES WHERE (cat_proceso = '"+ categoria +"') and " +
                 " id_caso not in (SELECT others.id_caso FROM PROCESSSEARCHINDEXES others WHERE" +
-                " (others.CLAVE = 'statusPrioridad' AND others.VALOR='prioritario') or " +
-                "(others.CLAVE = 'reconsideracion' AND others.VALOR!='')) and  ( ";
+                " (others.CLAVE = 'statusPrioridad' AND to_char(others.VALOR)='prioritario') or " +
+                "(others.CLAVE = 'reconsideracion' AND to_char(others.VALOR)!='')) and  ( ";
         final List<Restriccion> listRestriccion = params.getRestriccionList();
         final int sizeRestriccion = listRestriccion.size();
 
@@ -526,7 +532,7 @@ public class Asignador {
                 sql += " OR ";
         }
 
-        sql += ") group by id_caso having num = " + sizeRestriccion + ") as p2 ON (p.id_caso =  p2.id_caso ) GROUP BY p.id_caso ";
+        sql += ") group by id_caso having count(1) = " + sizeRestriccion + ") p2 ON (p.id_caso =  p2.id_caso ) GROUP BY p.id_caso ";
 
         LOGGER.debug("ESTANDARD SQL: " + sql);
 
@@ -569,11 +575,12 @@ public class Asignador {
     private List<HumanTaskInstance> getTareasCasos(List<Long> idsCaso) {
         List<HumanTaskInstance> tareas = null;
         if(idsCaso!= null && idsCaso.size() == 0) {
+            LOGGER.debug("No hay casos sobre los que buscar");
             return tareas;
         }
         try {
             ProcessAPI processAPI = getProcessAPI();
-            SearchOptionsBuilder sob = new SearchOptionsBuilder(0, 50);
+            SearchOptionsBuilder sob = new SearchOptionsBuilder(0, 200);
             if(idsCaso!= null) {
                 boolean firstTime = true;
                 for (Long caseId : idsCaso) {
@@ -607,7 +614,7 @@ public class Asignador {
                 tarea.put("name", iter.getName());
                 break;
             } catch (UpdateException e){
-                LOGGER.info(e.getMessage());
+                LOGGER.info("No se puede asignar esta tarea",e.getMessage());
                 continue;
             }
         }
