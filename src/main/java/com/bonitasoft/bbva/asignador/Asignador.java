@@ -6,6 +6,7 @@ import com.bonitasoft.bbva.asignador.beans.Prioridad;
 import com.bonitasoft.bbva.asignador.beans.Restriccion;
 import com.bonitasoft.bbva.asignador.utils.IndexesASCComparator;
 import com.bonitasoft.bbva.asignador.utils.IndexesDESCComparator;
+import com.bonitasoft.bbva.asignador.utils.ServicesAccessor;
 import org.bonitasoft.engine.api.ProcessAPI;
 import org.bonitasoft.engine.api.TenantAPIAccessor;
 import org.bonitasoft.engine.bpm.flownode.HumanTaskInstance;
@@ -23,6 +24,7 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -47,6 +49,7 @@ import java.util.TreeSet;
 public class Asignador {
     private static String BONITA_TECH_USER;
     private static String BONITA_TECH_USER_PASSWORD;
+    private static String REST_ENDPOINT;
     private static final Logger LOGGER = LoggerFactory.getLogger(Asignador.class);
     private static Map<String, Asignador> asignadorUsuario = new HashMap<>();
     private static DataSource dsBDM = null;
@@ -62,9 +65,10 @@ public class Asignador {
 
     }
 
-    public static Asignador getAsignador(Long idUser, String datasourceBDM, String techUser, String techUserPwd, String categoria) throws Exception {
+    public static Asignador getAsignador(Long idUser, String datasourceBDM, String techUser, String techUserPwd, String categoria, String restEndpoint) throws Exception {
         BONITA_TECH_USER = techUser;
         BONITA_TECH_USER_PASSWORD = techUserPwd;
+        REST_ENDPOINT = restEndpoint;
         try {
             if (dsBDM == null) {
                 dsBDM = getDatasouce(datasourceBDM);
@@ -82,9 +86,10 @@ public class Asignador {
     }
 
 
-    public Map<String, Serializable> getNextTask() {
+    public Map<String, Serializable> getNextTask() throws Exception{
 
         Map<String, Serializable> task;
+
         Parametria params = getParametria(categoria);
 
         final List<Long> casosPrioritarios = getCasosPrioritarios(params);
@@ -352,7 +357,18 @@ public class Asignador {
         }
         return rows;
     }
-    private Parametria getParametria(String categoria) {
+
+    private Parametria getParametria(String categoria) throws IOException {
+        return ServicesAccessor.getUserParametria(idUsuario,categoria, REST_ENDPOINT);
+
+    }
+
+    /**
+     * Metodo de test
+     * @param categoria
+     * @return
+     */
+    private Parametria getOldParametria(String categoria) {
 
         ///services/reglas
         Parametria parametria = new Parametria();
