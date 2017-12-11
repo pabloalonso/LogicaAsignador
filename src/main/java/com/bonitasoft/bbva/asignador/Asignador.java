@@ -420,13 +420,16 @@ public class Asignador {
                 "(prio.cat_proceso = '"+ categoria +"' AND prio.CLAVE = 'statusPrioridad' AND to_char(prio.VALOR)='prioritario')) AND (";
         final List<Restriccion> listRestriccion = params.getRestriccionList();
         final int sizeRestriccion = listRestriccion.size();
-        for (int i = 0; i < sizeRestriccion; i++) {
-            Restriccion r = listRestriccion.get(i);
-            sql += r.getSQL();
-            if (sizeRestriccion - 1 > i)
-                sql += " OR ";
+        if(sizeRestriccion == 0){
+            sql+="1 = 1";
+        }else {
+            for (int i = 0; i < sizeRestriccion; i++) {
+                Restriccion r = listRestriccion.get(i);
+                sql += r.getSQL();
+                if (sizeRestriccion - 1 > i)
+                    sql += " OR ";
+            }
         }
-
         sql += ") group by id_caso having count(1) = " + sizeRestriccion + ") p2 ON (p.id_caso =  p2.id_caso ) " +
                 "GROUP BY p.id_caso ";
 
@@ -481,14 +484,16 @@ public class Asignador {
         sql += "cat_proceso = '"+ categoria +"' AND (";
         final List<Restriccion> listRestriccion = params.getRestriccionList();
         final int sizeRestriccion = listRestriccion.size();
-
-        for (int i = 0; i < sizeRestriccion; i++) {
-            Restriccion r = listRestriccion.get(i);
-            sql += r.getSQL();
-            if (sizeRestriccion - 1 > i)
-                sql += " OR ";
-        }
-
+       if(sizeRestriccion == 0){
+           sql+="1 = 1";
+       }else {
+           for (int i = 0; i < sizeRestriccion; i++) {
+               Restriccion r = listRestriccion.get(i);
+               sql += r.getSQL();
+               if (sizeRestriccion - 1 > i)
+                   sql += " OR ";
+           }
+       }
         sql += " group by id_caso having num = " + sizeRestriccion + ") as p2 ON (p.id_caso =  p2.id_caso ) GROUP BY p.id_caso ";
 
         LOGGER.debug("RECONSIDERADO SQL: " + sql);
@@ -540,12 +545,15 @@ public class Asignador {
                 "(others.CLAVE = 'reconsideracion' AND to_char(others.VALOR)!='')) and  ( ";
         final List<Restriccion> listRestriccion = params.getRestriccionList();
         final int sizeRestriccion = listRestriccion.size();
-
-        for (int i = 0; i < sizeRestriccion; i++) {
-            Restriccion r = listRestriccion.get(i);
-            sql += r.getSQL();
-            if (sizeRestriccion - 1 > i)
-                sql += " OR ";
+        if(sizeRestriccion == 0){
+            sql+="1 = 1";
+        }else {
+            for (int i = 0; i < sizeRestriccion; i++) {
+                Restriccion r = listRestriccion.get(i);
+                sql += r.getSQL();
+                if (sizeRestriccion - 1 > i)
+                    sql += " OR ";
+            }
         }
 
         sql += ") group by id_caso having count(1) = " + sizeRestriccion + ") p2 ON (p.id_caso =  p2.id_caso ) GROUP BY p.id_caso ";
