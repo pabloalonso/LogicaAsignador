@@ -17,6 +17,24 @@ public class IndexesDESCComparator implements Comparator<Map> {
     }
     @Override
     public int compare(Map e1, Map e2) {
-        return ((String)e2.get(index)).compareTo((String)e1.get(index));
+        String v1 = (String)e1.get(index);
+        String v2 = (String)e2.get(index);
+
+        if (isInteger(v1) && isInteger(v2)) {
+            return (new Integer(v2)).compareTo((new Integer(v1)));
+        }else{
+
+        }
+        return v2.compareTo(v1);
+    }
+    private boolean isInteger(String s) {
+        try {
+            Integer.parseInt(s);
+        } catch(NumberFormatException e) {
+            return false;
+        } catch(NullPointerException e) {
+            return false;
+        }
+        return true;
     }
 }

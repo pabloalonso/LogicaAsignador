@@ -252,10 +252,15 @@ public class Asignador {
                 Integer pesoActual = 0;
                 for (Prioridad prioridad : prioridades) {
                     String valorCaso = row.get(prioridad.getPrioridad().toUpperCase());
-                    String valorReferencia = prioridad.getValor();
+                    String valorReferencia = prioridad.getValor()[0];
                     if (isInteger(valorCaso) && isInteger(valorReferencia)) {
                         switch (prioridad.getCondicion()) {
-                            //case "BETWEEN":
+                            case "BETWEEN":
+                                String valorReferencia2 = prioridad.getValor()[1];
+                                if(isInteger(valorReferencia2)) {
+                                    pesoActual += (Integer.parseInt(valorCaso) >= Integer.parseInt(valorReferencia2) && Integer.parseInt(valorCaso) <= Integer.parseInt(valorReferencia)) ? pesoActual + prioridad.getPeso() : pesoActual;
+                                }
+                                break;
                             //case "IN":
                             case ">":
                                 pesoActual += Integer.parseInt(valorCaso) > Integer.parseInt(valorReferencia) ? pesoActual + prioridad.getPeso() : pesoActual;
@@ -264,10 +269,10 @@ public class Asignador {
                                 pesoActual += Integer.parseInt(valorCaso) >= Integer.parseInt(valorReferencia) ? pesoActual + prioridad.getPeso() : pesoActual;
                                 break;
                             case "<":
-                                pesoActual += Integer.parseInt(valorCaso) > Integer.parseInt(valorReferencia) ? pesoActual + prioridad.getPeso() : pesoActual;
+                                pesoActual += Integer.parseInt(valorCaso) < Integer.parseInt(valorReferencia) ? pesoActual + prioridad.getPeso() : pesoActual;
                                 break;
                             case "<=":
-                                pesoActual += Integer.parseInt(valorCaso) >= Integer.parseInt(valorReferencia) ? pesoActual + prioridad.getPeso() : pesoActual;
+                                pesoActual += Integer.parseInt(valorCaso) <= Integer.parseInt(valorReferencia) ? pesoActual + prioridad.getPeso() : pesoActual;
                                 break;
                             case "=":
                                 pesoActual += Integer.parseInt(valorCaso) == Integer.parseInt(valorReferencia) ? pesoActual + prioridad.getPeso() : pesoActual;
@@ -278,7 +283,30 @@ public class Asignador {
                         if (prioridad.getCondicion().equals("=")) {
                             pesoActual += valorCaso.equals(valorReferencia) ? pesoActual + prioridad.getPeso() : pesoActual;
                         } else {
-                            LOGGER.error("Criterio de prioridad no valido");
+                            if (prioridad.getCondicion().equals("IN")) {
+                                boolean match = false;
+                                for(String valor : prioridad.getValor()){
+                                    if(valorCaso.equals(valor)) {
+                                        match = true;
+                                        break;
+                                    }
+                                }
+
+                                pesoActual += match ? pesoActual + prioridad.getPeso() : pesoActual;
+                            } else {
+                                if (prioridad.getCondicion().equals("!=")) {
+                                    boolean match = true;
+                                    for(String valor : prioridad.getValor()){
+                                        if(valorCaso.equals(valor)) {
+                                            match = false;
+                                            break;
+                                        }
+                                    }
+                                    pesoActual += match ? pesoActual + prioridad.getPeso() : pesoActual;
+                                } else {
+                                    LOGGER.error("Criterio de prioridad no valido");
+                                }
+                            }
                         }
                     }
                 }
@@ -297,9 +325,12 @@ public class Asignador {
                     ArrayList<Map> casosOrdenados = new ArrayList<>();
                     for (Orden orden : ordenes) {
                         Comparator comparator = orden.getCriterio().equals("ASC") ? new IndexesASCComparator(orden.getOrden()) : new IndexesDESCComparator(orden.getOrden());
+                        LOGGER.debug("COMPARADOR: " + comparator.getClass().getCanonicalName());
                         TreeSet<Map> casosAOrdenar = new TreeSet<Map>(comparator);
                         casosAOrdenar.addAll(casos);
+                        LOGGER.debug("CASOS A ORDENAR: " + casos.toString());
                         casosOrdenados.addAll(casosAOrdenar);
+                        LOGGER.debug("CASOS ORDENADOS: " + casosOrdenados.toString());
                     }
                     casos = casosOrdenados;
                 }
@@ -363,55 +394,7 @@ public class Asignador {
 
     }
 
-    /**
-     * Metodo de test
-     * @param categoria
-     * @return
-     */
-    private Parametria getOldParametria(String categoria) {
 
-        ///services/reglas
-        Parametria parametria = new Parametria();
-        List<Restriccion> listaRestricciones = new ArrayList<Restriccion>();
-        Restriccion rest = new Restriccion();
-        rest.setRestriccion("Monto");
-        rest.setCondicion("BETWEEN");
-        rest.setValores("10,90");
-        listaRestricciones.add(rest);
-/*
-        rest = new Restriccion();
-        rest.setRestriccion("TipoCliente");
-        rest.setCondicion("=");
-        rest.setValor("Pensionado");
-        listaRestricciones.add(rest);
-*/
-        List<Prioridad> prioridades = new ArrayList<>();
-        Prioridad p = new Prioridad();
-        p.setPrioridad("Producto");
-        p.setValor("Vehiculos");
-        p.setCondicion("=");
-        p.setPeso(50);
-        prioridades.add(p);
-
-        p = new Prioridad();
-        p.setPrioridad("TipoCliente");
-        p.setValor("Pensionado");
-        p.setCondicion("=");
-        p.setPeso(60);
-        prioridades.add(p);
-
-        List<Orden> ordenes = new ArrayList<>();
-        Orden o = new Orden();
-        o.setCriterio("DESC");
-        o.setOrden("Monto");
-        ordenes.add(o);
-
-        parametria.setOrdenList(ordenes);
-        parametria.setPrioridadList(prioridades);
-        parametria.setRestriccionList(listaRestricciones);
-
-        return parametria;
-    }
 
     private List<Long> getCasosPrioritarios(Parametria params) {
         List<Long> casos = new ArrayList<Long>();

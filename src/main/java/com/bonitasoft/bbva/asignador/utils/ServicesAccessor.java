@@ -89,7 +89,12 @@ public class ServicesAccessor {
                     prio = new Prioridad();
                     prio.setPrioridad((String) ((Map) oR).get(new String("nombre")));
                     prio.setCondicion((String) ((Map) oR).get(new String("condicion")));
-                    prio.setValor((String) ((Map) oR).get(new String("valor")));
+                    List valores = (List) ((Map) oR).get(new String("valor"));
+                    String[] array = new String[valores.size()];
+                    for (int i = 0; i < valores.size(); i++) {
+                        array[i] = valores.get(i).toString();
+                    }
+                    prio.setValor(array);
                     prio.setPeso(new Integer((String) ((Map) oR).get(new String("peso"))));
                     prioridades.add(prio);
                 }

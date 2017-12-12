@@ -7,7 +7,7 @@ public class Prioridad {
 
     private String prioridad;
     private String condicion;
-    private String valor;
+    private String[] valor;
     private Integer peso;
 
 
@@ -27,11 +27,11 @@ public class Prioridad {
         this.condicion = condicion;
     }
 
-    public String getValor() {
+    public String[] getValor() {
         return valor;
     }
 
-    public void setValor(String valor) {
+    public void setValor(String[] valor) {
         this.valor = valor;
     }
 

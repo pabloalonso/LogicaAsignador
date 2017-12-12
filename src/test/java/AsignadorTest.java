@@ -73,7 +73,7 @@ public class AsignadorTest {
     //@Test
     public void nextTask() throws Exception {
         Long s = System.currentTimeMillis();
-        Asignador as = Asignador.getAsignador(102L, "java:jboss/datasources/bdmAsignador", "install","install", "Natural");
+        Asignador as = Asignador.getAsignador(102L, "java:jboss/datasources/bdmAsignador", "install","install", "Natural", "http://192.168.10.8:8088/services");
         Map<String, Serializable> task = as.getNextTask();
         LOGGER.info(task.toString());
         LOGGER.info("Tomo: " + (System.currentTimeMillis() - s) + "ms");
@@ -83,7 +83,7 @@ public class AsignadorTest {
     public void mutiThreadNextTask() throws Exception {
         Long s = System.currentTimeMillis();
         Long userId = this.getNextUserId();
-        Asignador as = Asignador.getAsignador(userId, "java:jboss/datasources/bdmAsignador","install","install", "Natural");
+        Asignador as = Asignador.getAsignador(userId, "java:jboss/datasources/bdmAsignador","install","install", "Natural","http://192.168.10.8:8088/services");
         Map<String, Serializable> task = as.getNextTask();
         if(task == null) {
             LOGGER.info("No hay tareas para "+userId);
