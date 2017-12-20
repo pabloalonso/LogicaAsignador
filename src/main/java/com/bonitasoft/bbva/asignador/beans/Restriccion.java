@@ -54,7 +54,7 @@ public class Restriccion {
                     }
                     break;
             case "=":
-            case "==":  sql+="( CLAVE='" + restriccion + "' and to_char(VALOR) " + convertirCondicion(condicion) + "'" + valores[0] + "')";
+            case "==":  sql+="( CLAVE='" + restriccion + "' and to_char(VALOR) " + convertirCondicion(condicion) + "'" + valores[0] + "')";break;
             default:    sql+="( CLAVE='" + restriccion + "' and to_number (VALOR) " + convertirCondicion(condicion) + "'" + valores[0] + "')";
         }
         return sql;
