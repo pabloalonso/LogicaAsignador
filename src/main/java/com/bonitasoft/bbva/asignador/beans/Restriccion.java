@@ -44,8 +44,8 @@ public class Restriccion {
     public String getSQL() {
         String sql ="";
         switch (condicion) {
-            case "BETWEEN": sql += "( CLAVE='" + restriccion + "' and to_number (VALOR) " + convertirCondicion(condicion) + " " + valores[0] + " and " + valores[1] + ")";break;
-            case "IN":      sql += "( CLAVE='" + restriccion + "' and to_char(VALOR) " + convertirCondicion(condicion) + "(";
+            case "BETWEEN": sql += " ( CLAVE='" + restriccion + "' and to_number (VALOR) " + convertirCondicion(condicion) + " " + valores[0] + " and " + valores[1] + ") ";break;
+            case "IN":      sql += " ( CLAVE='" + restriccion + "' and to_char(VALOR) " + convertirCondicion(condicion) + " (";
                     for(int i =0; i< valores.length; i++){
                         sql+="'" + valores[0] + "'";
                         if(valores.length-1<i){
