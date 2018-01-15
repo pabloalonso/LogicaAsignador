@@ -48,7 +48,7 @@ public class Restriccion {
             case "IN":      sql += " ( CLAVE='" + restriccion + "' and to_char(VALOR) " + convertirCondicion(condicion) + " (";
                     for(int i =0; i< valores.length; i++){
                         sql+="'" + valores[i] + "'";
-                        if(valores.length-1<i){
+                        if(valores.length-1 > i){
                             sql+=",";
                         }
                     }
