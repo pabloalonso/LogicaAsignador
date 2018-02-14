@@ -55,6 +55,7 @@ public class Restriccion {
                     sql+=") )";
                     break;
             case "=":
+            case "!=":
             case "==":  sql+="( CLAVE='" + restriccion + "' and to_char(VALOR) " + convertirCondicion(condicion) + "'" + valores[0] + "')";break;
             default:    sql+="( CLAVE='" + restriccion + "' and to_number (VALOR) " + convertirCondicion(condicion) + "'" + valores[0] + "')";
         }
@@ -67,6 +68,7 @@ public class Restriccion {
             case "IN":
             case ">":
             case ">=":
+            case "!=":
             case "=":
             case "<":
             case "<=":
