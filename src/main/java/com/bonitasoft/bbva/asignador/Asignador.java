@@ -1,5 +1,27 @@
 package com.bonitasoft.bbva.asignador;
 
+import java.io.IOException;
+import java.io.Serializable;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
+
 import com.bonitasoft.bbva.asignador.beans.Orden;
 import com.bonitasoft.bbva.asignador.beans.Parametria;
 import com.bonitasoft.bbva.asignador.beans.Prioridad;
@@ -19,28 +41,6 @@ import org.bonitasoft.engine.session.APISession;
 import org.bonitasoft.engine.session.InvalidSessionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import javax.sql.DataSource;
-import java.io.IOException;
-import java.io.Serializable;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.TreeSet;
 
 
 /**
@@ -579,11 +579,48 @@ public class Asignador {
 
     }
 
+    private List<HumanTaskInstance> getTareasCasosHeavy(List<Long> idsCaso) {
+
+
+        List<HumanTaskInstance> tareas = null;
+        final List<HumanTaskInstance> tareasOutput = new ArrayList<>();
+        int count = 0;
+        final int page = 500;
+        boolean loop = true;
+        while(loop) {
+            try {
+                ProcessAPI processAPI = getProcessAPI();
+                SearchOptionsBuilder sob = new SearchOptionsBuilder(count, page);
+                sob.sort(HumanTaskInstanceSearchDescriptor.REACHED_STATE_DATE, Order.ASC);
+                tareas  = processAPI.searchPendingTasksForUser(idUsuario, sob.done()).getResult();
+                for (HumanTaskInstance tarea : tareas) {
+                    final Long caseId = tarea.getRootContainerId();
+                    if (idsCaso.contains(caseId)) {
+                        tareasOutput.add(tarea);
+                    }
+                }
+                if( page > tareas.size() || tareasOutput.size() > 20){
+                    loop = false;
+                }else{
+                    count += page;
+                }
+            } catch (SearchException e) {
+                LOGGER.error("Excepción realizando la busqueda(heavy)", e);
+            }
+        }
+        return tareasOutput;
+    }
+
     private List<HumanTaskInstance> getTareasCasos(List<Long> idsCaso) {
         List<HumanTaskInstance> tareas = null;
+        LOGGER.debug("getTareasCasos de "+idsCaso.size() + " casos");
         if(idsCaso!= null && idsCaso.size() == 0) {
             LOGGER.debug("No hay casos sobre los que buscar");
             return tareas;
+        }else{
+            if(idsCaso.size() > 20){
+                return getTareasCasosHeavy(idsCaso);
+            }
         }
         try {
             ProcessAPI processAPI = getProcessAPI();
