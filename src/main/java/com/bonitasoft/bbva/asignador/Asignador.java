@@ -618,8 +618,8 @@ public class Asignador {
             LOGGER.debug("No hay casos sobre los que buscar");
             return tareas;
         }else{
-            LOGGER.debug("getTareasCasos de "+idsCaso.size() + " casos");
             if(idsCaso != null && idsCaso.size() > 20){
+                LOGGER.debug("getTareasCasos de "+idsCaso.size() + " casos");
                 return getTareasCasosHeavy(idsCaso);
             }
         }
