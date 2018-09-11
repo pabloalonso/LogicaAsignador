@@ -613,11 +613,12 @@ public class Asignador {
 
     private List<HumanTaskInstance> getTareasCasos(List<Long> idsCaso) {
         List<HumanTaskInstance> tareas = null;
-        LOGGER.debug("getTareasCasos de "+idsCaso.size() + " casos");
-        if(idsCaso!= null && idsCaso.size() == 0) {
+
+        if(idsCaso == null || idsCaso.size() == 0) {
             LOGGER.debug("No hay casos sobre los que buscar");
             return tareas;
         }else{
+            LOGGER.debug("getTareasCasos de "+idsCaso.size() + " casos");
             if(idsCaso.size() > 20){
                 return getTareasCasosHeavy(idsCaso);
             }
