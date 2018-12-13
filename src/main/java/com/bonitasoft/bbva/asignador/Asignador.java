@@ -76,12 +76,14 @@ public class Asignador {
         }catch (NamingException ne){
             throw new Exception("Conexion no conseguida",ne);
         }
+        /*
         Asignador asignador = asignadorUsuario.get(""+idUser+"-"+categoria);
         if (asignador == null) {
             asignador = new Asignador(idUser, categoria);
             asignadorUsuario.put(""+idUser+"-"+categoria, asignador);
         }
-
+        */
+        Asignador asignador = new Asignador(idUser, categoria);
         return asignador;
     }
 
@@ -125,16 +127,23 @@ public class Asignador {
                 return task;
             }
         }
-        LOGGER.error("La parametria utilizada no devuelve ninguna tarea, asignando la siguiente tarea por fecha");
-        tareas = getTareasCasos(null);
-        if (tareas != null && tareas.size() > 0) {
-            task = asignarTarea(tareas);
-            if (task != null) {
-                LOGGER.error("Devolviendo cualquier tarea");
-                return task;
+
+
+        final int sizeRestriccion = params.getRestriccionList().size();
+        if(false && sizeRestriccion == 0) {
+            LOGGER.error("La parametria utilizada no devuelve ninguna tarea, asignando la siguiente tarea por fecha");
+            tareas = getTareasCasos(null);
+            if (tareas != null && tareas.size() > 0) {
+                task = asignarTarea(tareas);
+                if (task != null) {
+                    LOGGER.error("Devolviendo cualquier tarea");
+                    return task;
+                }
             }
+            LOGGER.error("No hay tareas en el sistema");
         }
-        LOGGER.error("No hay tareas en el sistema");
+        LOGGER.error("No hay tareas en el sistema que cumplan la parametria ");
+
         return null;
     }
 
@@ -413,7 +422,12 @@ public class Asignador {
                     sql += " OR ";
             }
         }
-        sql += ") group by id_caso having count(1) = " + sizeRestriccion + ") p2 ON (p.id_caso =  p2.id_caso ) " +
+        sql += ") group by id_caso ";
+        if(sizeRestriccion != 0){
+            sql += "having count(1) = " + sizeRestriccion;
+        }
+
+        sql += ") p2 ON (p.id_caso =  p2.id_caso ) " +
                 "GROUP BY p.id_caso ";
 
         LOGGER.debug("PRIORITARIO SQL: " + sql);
