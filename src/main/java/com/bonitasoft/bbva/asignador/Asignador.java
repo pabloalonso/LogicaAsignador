@@ -31,8 +31,12 @@ import com.bonitasoft.bbva.asignador.utils.IndexesDESCComparator;
 import com.bonitasoft.bbva.asignador.utils.ServicesAccessor;
 import org.bonitasoft.engine.api.ProcessAPI;
 import org.bonitasoft.engine.api.TenantAPIAccessor;
+import org.bonitasoft.engine.bpm.category.Category;
+import org.bonitasoft.engine.bpm.category.CategoryCriterion;
 import org.bonitasoft.engine.bpm.flownode.HumanTaskInstance;
 import org.bonitasoft.engine.bpm.flownode.HumanTaskInstanceSearchDescriptor;
+import org.bonitasoft.engine.bpm.process.ProcessDeploymentInfo;
+import org.bonitasoft.engine.bpm.process.ProcessDeploymentInfoCriterion;
 import org.bonitasoft.engine.exception.SearchException;
 import org.bonitasoft.engine.exception.UpdateException;
 import org.bonitasoft.engine.search.Order;
@@ -56,6 +60,7 @@ public class Asignador {
     private String categoria;
     private Long idUsuario;
     private static APISession session;
+    private Long categoriaId;
 
     private Asignador(Long idUsuario , String categoria) {
         super();
@@ -639,9 +644,10 @@ public class Asignador {
         }
         try {
             ProcessAPI processAPI = getProcessAPI();
+            boolean firstTime = true;
             SearchOptionsBuilder sob = new SearchOptionsBuilder(0, 200);
             if(idsCaso!= null) {
-                boolean firstTime = true;
+
                 for (Long caseId : idsCaso) {
                     if (!firstTime) {
                         sob.or();
@@ -649,6 +655,16 @@ public class Asignador {
                         firstTime = false;
                     }
                     sob.filter(HumanTaskInstanceSearchDescriptor.PROCESS_INSTANCE_ID, caseId);
+                }
+            }else{
+                List<Long> processDefinitionIds = getProcessIdsOfCategory(processAPI);
+                for(Long processId : processDefinitionIds) {
+                    if (!firstTime) {
+                        sob.or();
+                    } else {
+                        firstTime = false;
+                    }
+                    sob.filter(HumanTaskInstanceSearchDescriptor.PROCESS_DEFINITION_ID, processId);
                 }
             }
             sob.sort(HumanTaskInstanceSearchDescriptor.REACHED_STATE_DATE, Order.ASC);
@@ -658,6 +674,25 @@ public class Asignador {
             LOGGER.error("Excepción realizando la busqueda", e);
         }
         return tareas;
+    }
+
+    private List<Long> getProcessIdsOfCategory( ProcessAPI processAPI) {
+        if(categoriaId == null) {
+            List<Category> categories = processAPI.getCategories(0, 20, CategoryCriterion.NAME_ASC);
+            for(Category category: categories){
+                if (category.getName().equals(categoria)) {
+                    categoriaId = category.getId();
+                    break;
+                }
+            }
+        }
+        List<Long> processesIds = new ArrayList<>();
+        List<ProcessDeploymentInfo> processes = processAPI.getProcessDeploymentInfosOfCategory(categoriaId, 0, 50, ProcessDeploymentInfoCriterion.DEFAULT);
+        for(ProcessDeploymentInfo pdi : processes ){
+            processesIds.add(pdi.getProcessId())
+        }
+        return processesIds;
+
     }
 
     private Map<String, Serializable> asignarTarea(List<HumanTaskInstance> tareas) {
